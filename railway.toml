@@ -1,8 +1,9 @@
 [build]
-builder          = "nixpacks"
-buildCommand     = "npm ci && npm run build"
+builder      = "nixpacks"
+buildCommand = "npm ci && npx prisma generate && npm run build"
 
 [deploy]
-startCommand     = "npx prisma migrate deploy && node .output/server/index.mjs"
-healthcheckPath  = "/"
+startCommand      = "npx prisma migrate deploy && node .output/server/index.mjs"
+healthcheckPath   = "/"
+healthcheckTimeout = 60
 restartPolicyType = "on_failure"
