@@ -7,8 +7,8 @@ RUN npm ci
 
 # Build
 COPY . .
-RUN npx prisma generate && npm run build
+RUN npm run build
 
 # Run
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && node .output/server/index.mjs"]
+CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && node .output/server/index.mjs"]
