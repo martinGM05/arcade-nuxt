@@ -14,5 +14,6 @@ RUN npm run build
 
 # Run
 EXPOSE 3000
+ENV HOST=0.0.0.0
 ENV NITRO_HOST=0.0.0.0
-CMD ["sh", "-c", "NITRO_PORT=${PORT:-3000} npx prisma generate && npx prisma migrate deploy && node .output/server/index.mjs"]
+CMD ["sh", "-c", "export PORT=${PORT:-3000}; export NITRO_PORT=$PORT; npx prisma generate && npx prisma migrate deploy && node .output/server/index.mjs"]
