@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const username = body.username.trim()
   const password = body.password
 
-  const emailValid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   if (!emailValid) {
     logAuth(event, 'register', 'fail', { reason: 'invalid_email', email })
     throw createError({ statusCode: 400, message: 'Email inválido' })
