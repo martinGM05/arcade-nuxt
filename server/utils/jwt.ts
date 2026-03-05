@@ -8,7 +8,7 @@ export interface TokenPayload extends JWTPayload {
 
 function getSecret(): Uint8Array {
   const config = useRuntimeConfig()
-  const secret = config.jwtSecret
+  const secret = config.jwtSecret || process.env.JWT_SECRET || process.env.NUXT_JWT_SECRET
   if (!secret) throw new Error('JWT_SECRET is not configured')
   return new TextEncoder().encode(secret)
 }
