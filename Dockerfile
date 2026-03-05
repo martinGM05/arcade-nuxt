@@ -19,4 +19,4 @@ EXPOSE 3000
 ENV HOST=0.0.0.0
 ENV NITRO_HOST=0.0.0.0
 ENV NUXT_HOST=0.0.0.0
-CMD ["sh", "-c", "export PORT=${PORT:-3000}; export NITRO_PORT=$PORT; export NUXT_PORT=$PORT; npx prisma migrate deploy && node .output/server/index.mjs"]
+CMD ["/app/docker-entrypoint.sh"]
