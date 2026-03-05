@@ -42,6 +42,53 @@ const containerRef = ref<HTMLDivElement | null>(null)
 const score = ref(0)
 const state = ref<'idle' | 'running' | 'paused' | 'gameover'>('idle')
 
+let audioCtx: AudioContext | null = null
+
+function getAudioCtx(): AudioContext {
+  if (!audioCtx) audioCtx = new AudioContext()
+  return audioCtx
+}
+
+function playTone(freq: number, duration: number, type: OscillatorType = 'square', volume = 0.15): void {
+  const ctx = getAudioCtx()
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.type = type
+  osc.frequency.value = freq
+  gain.gain.value = volume
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.start(ctx.currentTime)
+  osc.stop(ctx.currentTime + duration)
+}
+
+function playEatSound(): void {
+  playTone(880, 0.05)
+  setTimeout(() => playTone(1320, 0.08), 50)
+}
+
+function playGameOverSound(): void {
+  const notes = [440, 370, 311, 233]
+  notes.forEach((freq, i) => {
+    setTimeout(() => playTone(freq, 0.15, 'square', 0.12), i * 150)
+  })
+}
+
+function playStartSound(): void {
+  const notes = [523, 659, 784, 1047]
+  notes.forEach((freq, i) => {
+    setTimeout(() => playTone(freq, 0.08, 'square', 0.1), i * 80)
+  })
+}
+
+function playNewRecordSound(): void {
+  const notes = [784, 988, 1175, 1319, 1568]
+  notes.forEach((freq, i) => {
+    setTimeout(() => playTone(freq, 0.1, 'square', 0.1), i * 100)
+  })
+}
+
 let ctx: CanvasRenderingContext2D | null = null
 let snake: Array<{ x: number; y: number }> = []
 let dir = { x: 1, y: 0 }
@@ -85,6 +132,7 @@ function tick(timestamp: number): void {
 
   if (head.x === food.x && head.y === food.y) {
     score.value += 10
+    playEatSound()
     saveScore(score.value)
     speed = Math.max(60, speed - 3)
     spawnFood()
@@ -150,6 +198,7 @@ function startGame(): void {
   initGame()
   state.value = 'running'
   lastTime = 0
+  playStartSound()
   rafId = requestAnimationFrame(tick)
   draw()
 }
@@ -157,7 +206,10 @@ function startGame(): void {
 function endGame(): void {
   state.value = 'gameover'
   cancelAnimationFrame(rafId)
+  const isNewRecord = score.value > 0 && score.value >= highScore.value
   saveScore(score.value)
+  playGameOverSound()
+  if (isNewRecord) setTimeout(() => playNewRecordSound(), 700)
   draw()
 }
 
