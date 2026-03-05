@@ -38,5 +38,13 @@ export function useAuth() {
     await navigateTo('/login')
   }
 
-  return { user, fetchUser, login, register, logout }
+  async function updateProfile(email: string, username: string): Promise<void> {
+    const data = await $fetch<{ user: AuthUser }>('/api/profile', {
+      method: 'PUT',
+      body: { email, username },
+    })
+    user.value = data.user
+  }
+
+  return { user, fetchUser, login, register, logout, updateProfile }
 }

@@ -12,7 +12,7 @@
       </div>
       <div class="nav-auth">
         <template v-if="auth.user.value">
-          <span class="nav-username">{{ auth.user.value.username }}</span>
+          <NuxtLink to="/profile" class="nav-username">{{ auth.user.value.username }}</NuxtLink>
           <button class="nav-btn" @click="auth.logout()">Salir</button>
         </template>
         <template v-else>
