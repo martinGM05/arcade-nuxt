@@ -159,13 +159,13 @@ function startGame(state: RoomState): void {
     p.currentRoom = START_ROOMS[i % START_ROOMS.length]!
   })
 
-  remaining.forEach((card, i) => {
+  const totalDealable = playerList.length * Math.floor(remaining.length / playerList.length)
+  state.publicCards = remaining.slice(totalDealable)
+
+  remaining.slice(0, totalDealable).forEach((card, i) => {
     const player = playerList[i % playerList.length]!
     player.hand.push(card)
   })
-
-  const totalDealable = playerList.length * Math.floor(remaining.length / playerList.length)
-  state.publicCards = remaining.slice(totalDealable)
 
   state.currentUserId = playerList[0]!.userId
   state.phase = 'MOVE'
