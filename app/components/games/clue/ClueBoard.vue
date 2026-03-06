@@ -75,7 +75,7 @@
         >★ TÚ</text>
 
         <!-- Players in this room -->
-        <g v-for="(p, i) in playersInRoom(id as RoomId)" :key="p.userId">
+        <g v-for="(p, i) in playersInRoom(id as RoomId)" :key="p.userId" :opacity="p.connected === false ? 0.3 : 1">
           <!-- Larger ring for own player -->
           <circle
             v-if="p.userId === myUserId"
@@ -93,6 +93,15 @@
             :fill="PLAYER_COLORS[p.slot % PLAYER_COLORS.length]!"
             stroke="none"
           />
+          <!-- Disconnected indicator -->
+          <text
+            v-if="p.connected === false"
+            :x="pos.cx - 20 + i * 16"
+            :y="pos.cy + 50"
+            text-anchor="middle"
+            font-size="7"
+            fill="#ff2d78"
+          >✕</text>
         </g>
       </g>
 

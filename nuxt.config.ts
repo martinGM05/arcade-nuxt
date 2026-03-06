@@ -3,6 +3,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  modules: ['@pinia/nuxt', '@vueuse/nuxt'],
+
   typescript: {
     strict: true,
     typeCheck: false, // set to true after all types stabilize

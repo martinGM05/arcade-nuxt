@@ -14,6 +14,7 @@ export interface CluePub {
   currentRoom: RoomId
   alive: boolean
   cardCount: number
+  connected: boolean
 }
 
 export interface ClueSuggestion {
@@ -75,6 +76,7 @@ export function useClueWs(roomId: string) {
 
       switch (msg['type']) {
         case 'JOINED':
+        case 'REJOINED':
           mySlot.value = msg['slot'] as number
           status.value = 'waiting'
           break
@@ -92,7 +94,7 @@ export function useClueWs(roomId: string) {
             myHand: msg['myHand'] as CardId[],
             pendingSuggestion: msg['pendingSuggestion'] as ClueSuggestion | null,
           }
-          if (status.value === 'waiting' && msg['phase'] !== 'WAITING') status.value = 'playing'
+          if (msg['phase'] !== 'WAITING') status.value = 'playing'
           break
 
         case 'TURN_START':
@@ -145,7 +147,10 @@ export function useClueWs(roomId: string) {
           break
 
         case 'PLAYER_DISCONNECTED':
-          lastEvent.value = { type: 'PLAYER_DISCONNECTED', payload: msg }
+        case 'PLAYER_RECONNECTED':
+        case 'PLAYER_ELIMINATED':
+        case 'AFK_SKIP':
+          lastEvent.value = { type: msg['type'] as string, payload: msg }
           break
 
         case 'ERROR':

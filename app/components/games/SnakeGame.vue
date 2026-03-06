@@ -10,18 +10,28 @@
 
       <div v-if="state === 'idle'" class="overlay">
         <p class="overlay-title">SNAKE</p>
-        <p class="overlay-hint">Presiona ENTER o ESPACIO para comenzar</p>
+        <p class="overlay-hint">Presiona ENTER o toca para comenzar</p>
       </div>
       <div v-else-if="state === 'gameover'" class="overlay">
         <p class="overlay-title game-over">GAME OVER</p>
         <p class="overlay-score">Puntuación: {{ score }}</p>
         <p v-if="score >= highScore && score > 0" class="overlay-hs">¡NUEVO RÉCORD!</p>
-        <p class="overlay-hint">ENTER o ESPACIO para reintentar</p>
+        <p class="overlay-hint">ENTER o toca para reintentar</p>
       </div>
       <div v-else-if="state === 'paused'" class="overlay">
         <p class="overlay-title">PAUSA</p>
-        <p class="overlay-hint">ENTER o P para continuar</p>
+        <p class="overlay-hint">ENTER, P o toca ● para continuar</p>
       </div>
+    </div>
+
+    <div class="dpad">
+      <button class="dpad-btn dpad-up" @touchstart.prevent="mobileDir(0,-1)" @click="mobileDir(0,-1)">▲</button>
+      <div class="dpad-row">
+        <button class="dpad-btn dpad-left" @touchstart.prevent="mobileDir(-1,0)" @click="mobileDir(-1,0)">◀</button>
+        <button class="dpad-btn dpad-center" @touchstart.prevent="handleCenterTap" @click="handleCenterTap">⏸</button>
+        <button class="dpad-btn dpad-right" @touchstart.prevent="mobileDir(1,0)" @click="mobileDir(1,0)">▶</button>
+      </div>
+      <button class="dpad-btn dpad-down" @touchstart.prevent="mobileDir(0,1)" @click="mobileDir(0,1)">▼</button>
     </div>
 
     <div class="controls-hint">
@@ -224,6 +234,17 @@ function togglePause(): void {
   }
 }
 
+// Mobile helpers
+function mobileDir(x: number, y: number): void {
+  if (state.value !== 'running') return
+  if (x !== -dir.x || y !== -dir.y) nextDir = { x, y }
+}
+
+function handleCenterTap(): void {
+  if (state.value === 'idle' || state.value === 'gameover') startGame()
+  else if (state.value === 'running' || state.value === 'paused') togglePause()
+}
+
 const KEY_MAP: Record<string, { x: number; y: number }> = {
   ArrowUp: { x: 0, y: -1 }, w: { x: 0, y: -1 }, W: { x: 0, y: -1 },
   ArrowDown: { x: 0, y: 1 }, s: { x: 0, y: 1 }, S: { x: 0, y: 1 },
@@ -249,14 +270,32 @@ function onKey(e: KeyboardEvent): void {
   if (newDir.x !== -dir.x || newDir.y !== -dir.y) nextDir = newDir
 }
 
+function onCanvasTouch(e: TouchEvent): void {
+  e.preventDefault()
+  if (state.value === 'idle' || state.value === 'gameover') startGame()
+}
+
+useSwipe(canvasRef, {
+  passive: false,
+  onSwipeEnd(_e, direction) {
+    if (state.value !== 'running') return
+    if (direction === 'UP') mobileDir(0, -1)
+    else if (direction === 'DOWN') mobileDir(0, 1)
+    else if (direction === 'LEFT') mobileDir(-1, 0)
+    else if (direction === 'RIGHT') mobileDir(1, 0)
+  },
+})
+
 onMounted(() => {
   ctx = canvasRef.value!.getContext('2d')
   draw()
   window.addEventListener('keydown', onKey)
+  canvasRef.value!.addEventListener('touchstart', onCanvasTouch, { passive: false })
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKey)
+  if (canvasRef.value) canvasRef.value.removeEventListener('touchstart', onCanvasTouch)
   cancelAnimationFrame(rafId)
 })
 </script>
@@ -270,7 +309,8 @@ onUnmounted(() => {
 }
 
 .score-bar {
-  width: 400px;
+  width: 100%;
+  max-width: 400px;
   display: flex;
   justify-content: space-between;
   font-family: var(--font-pixel);
@@ -284,12 +324,17 @@ onUnmounted(() => {
 .canvas-container {
   position: relative;
   width: 400px;
-  height: 400px;
+  max-width: 100%;
+  aspect-ratio: 1;
   border: 2px solid #39ff14;
   box-shadow: 0 0 20px #39ff1444, inset 0 0 20px #00000088;
 }
 
-canvas { display: block; }
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 
 .overlay {
   position: absolute;
@@ -333,6 +378,47 @@ canvas { display: block; }
   color: var(--text-dim);
 }
 
+/* D-pad: hidden on desktop, visible on touch */
+.dpad {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.dpad-row {
+  display: flex;
+  gap: 4px;
+}
+
+.dpad-btn {
+  width: 58px;
+  height: 58px;
+  background: #1a1a1a;
+  border: 1px solid #39ff1466;
+  border-radius: 8px;
+  color: var(--neon-green);
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s, box-shadow 0.1s;
+}
+
+.dpad-btn:active {
+  background: #39ff1422;
+  box-shadow: 0 0 10px #39ff1466;
+}
+
+.dpad-center {
+  font-size: 1rem;
+  color: var(--text-dim);
+}
+
+/* Keyboard hint: shown on desktop */
 .controls-hint {
   font-size: 0.8rem;
   color: var(--text-dim);
@@ -347,6 +433,11 @@ kbd {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   color: var(--neon-green);
+}
+
+@media (pointer: coarse) {
+  .dpad { display: flex; }
+  .controls-hint { display: none; }
 }
 
 @keyframes blink {

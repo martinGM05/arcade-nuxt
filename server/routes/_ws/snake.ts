@@ -7,7 +7,7 @@ import { RoomStatus } from '@prisma/client'
 interface Segment { x: number; y: number }
 
 interface SnakePlayer {
-  peer: Peer
+  peer: Peer | null   // null = disconnected
   userId: string
   username: string
   slot: 0 | 1
@@ -24,9 +24,12 @@ interface RoomState {
   tick: number
   tickMs: number
   timer: ReturnType<typeof setInterval> | null
-  status: 'waiting' | 'playing' | 'finished'
+  reconnectTimer: ReturnType<typeof setTimeout> | null
+  status: 'waiting' | 'playing' | 'paused' | 'finished'
   roomId: string
 }
+
+const RECONNECT_MS = 15_000  // 15 s to reconnect before forfeit
 
 const GRID = 20
 const gameRooms = new Map<string, RoomState>()
@@ -220,13 +223,28 @@ export default defineWebSocketHandler({
       if (!gameRooms.has(roomId)) {
         gameRooms.set(roomId, {
           players: new Map(), food: { x: 10, y: 10 }, tick: 0, tickMs: 150,
-          timer: null, status: 'waiting', roomId,
+          timer: null, reconnectTimer: null, status: 'waiting', roomId,
         })
       }
 
       const state = gameRooms.get(roomId)!
-      state.players.set(payload.userId, initPlayer(slot, peer, payload.userId, payload.username))
 
+      // Reconnecting to a paused game
+      if (state.status === 'paused') {
+        const existing = state.players.get(payload.userId)
+        if (existing) {
+          existing.peer = peer
+          if (state.reconnectTimer) { clearTimeout(state.reconnectTimer); state.reconnectTimer = null }
+          state.status = 'playing'
+          state.timer = setInterval(() => gameTick(state), state.tickMs)
+          peer.send(JSON.stringify({ type: 'JOINED', slot, roomId }))
+          broadcastToAll(roomId, { type: 'RESUMED', userId: payload.userId, username: payload.username })
+          broadcastState(state)
+          return
+        }
+      }
+
+      state.players.set(payload.userId, initPlayer(slot, peer, payload.userId, payload.username))
       peer.send(JSON.stringify({ type: 'JOINED', slot, roomId }))
 
       if (state.players.size >= 2 && state.status === 'waiting') {
@@ -258,28 +276,35 @@ export default defineWebSocketHandler({
 
   async close(peer) {
     for (const [roomId, room] of rooms) {
-      if (room.has(peer.id)) {
-        const rp = room.get(peer.id)!
-        room.delete(peer.id)
+      if (!room.has(peer.id)) continue
+      const rp = room.get(peer.id)!
+      room.delete(peer.id)
 
-        const state = gameRooms.get(roomId)
-        if (state && state.status === 'playing') {
-          const player = state.players.get(rp.userId)
-          if (player) player.alive = false
+      const state = gameRooms.get(roomId)
+      if (state && state.status === 'playing') {
+        const player = state.players.get(rp.userId)
+        if (player) player.peer = null
 
-          const stillAlive = Array.from(state.players.values()).filter(p => p.alive)
-          if (stillAlive.length <= 1) {
-            const winner = stillAlive[0]?.slot ?? null
-            endGame(state, winner, 'disconnect')
-          }
-        }
+        // Pause the game and give the player 15 s to reconnect
+        if (state.timer) { clearInterval(state.timer); state.timer = null }
+        state.status = 'paused'
+        broadcastToAll(roomId, { type: 'PAUSED', userId: rp.userId, username: rp.username, reconnectMs: RECONNECT_MS })
 
-        if (room.size === 0) {
-          rooms.delete(roomId)
-          gameRooms.delete(roomId)
-        }
-        break
+        state.reconnectTimer = setTimeout(() => {
+          state.reconnectTimer = null
+          const current = gameRooms.get(roomId)
+          if (!current || current.status !== 'paused') return
+          const p = current.players.get(rp.userId)
+          if (!p || p.peer !== null) return  // already reconnected
+          // Forfeit — other player wins
+          const winner = Array.from(current.players.values()).find(pl => pl.userId !== rp.userId)
+          endGame(current, winner?.slot ?? null, 'disconnect')
+        }, RECONNECT_MS)
+      } else if (state?.status === 'waiting') {
+        state.players.delete(rp.userId)
+        if (room.size === 0) { rooms.delete(roomId); gameRooms.delete(roomId) }
       }
+      break
     }
   },
 })

@@ -348,13 +348,16 @@ watch(lastEvent, (evt) => {
   const p = evt.payload as Record<string, string> | undefined
   const username = p?.['username'] ?? p?.['byUsername'] ?? ''
   const messages: Record<string, string> = {
-    PLAYER_JOINED: `${username} se unió`,
-    PLAYER_MOVED: `${username} → ${ROOM_LABELS[p?.['to'] ?? ''] ?? p?.['to']}`,
-    SUGGESTION_MADE: `${username} sugirió: ${SUSPECT_LABELS[p?.['suspect'] ?? ''] ?? ''} + ${WEAPON_LABELS[p?.['weapon'] ?? ''] ?? ''}`,
-    CANNOT_DISPROVE: `${username || 'Nadie'} no puede refutar`,
+    PLAYER_JOINED:      `${username} se unió`,
+    PLAYER_MOVED:       `${username} → ${ROOM_LABELS[p?.['to'] ?? ''] ?? p?.['to']}`,
+    SUGGESTION_MADE:    `${username} sugirió: ${SUSPECT_LABELS[p?.['suspect'] ?? ''] ?? ''} + ${WEAPON_LABELS[p?.['weapon'] ?? ''] ?? ''}`,
+    CANNOT_DISPROVE:    `${username || 'Nadie'} no puede refutar`,
     DISPROVE_RESULT_PUBLIC: `${p?.['disproverUsername'] ?? ''} mostró una carta`,
-    ACCUSATION_RESULT: p?.['correct'] === 'true' ? `${username} acusó ✓` : `${username} acusó ✗`,
-    PLAYER_DISCONNECTED: `${username} se desconectó`,
+    ACCUSATION_RESULT:  p?.['correct'] === 'true' ? `${username} acusó ✓` : `${username} acusó ✗`,
+    PLAYER_DISCONNECTED: `⚠ ${username} se desconectó (60 s para reconectar)`,
+    PLAYER_RECONNECTED:  `✓ ${username} reconectado`,
+    PLAYER_ELIMINATED:   `✗ ${username} eliminado por inactividad`,
+    AFK_SKIP:            `⏱ ${username} sin respuesta — turno saltado`,
   }
   const msg = messages[evt.type]
   if (msg) eventLog.value.push(msg)
