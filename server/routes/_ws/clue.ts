@@ -423,13 +423,13 @@ function handleAccuse(state: RoomState, player: CluePlayer, suspect: SuspectId, 
 async function finishRoom(state: RoomState, winnerId: string | null): Promise<void> {
   await prisma.gameRoom.update({
     where: { id: state.roomId },
-    data: { status: RoomStatus.FINISHED },
-  }).catch(() => {/* ignore */})
+    data: { status: RoomStatus.FINISHED, state: {} },
+  }).catch(() => {})
 
   if (winnerId) {
     await prisma.score.create({
       data: { userId: winnerId, gameId: (await prisma.game.findUniqueOrThrow({ where: { key: 'CLUE' } })).id, value: 1 },
-    }).catch(() => {/* ignore */})
+    }).catch(() => {})
   }
 }
 
