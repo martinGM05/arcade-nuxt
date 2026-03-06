@@ -1,6 +1,11 @@
 <template>
   <div class="leaderboard">
-    <h1 class="page-title">RÉCORDS GLOBALES</h1>
+    <div class="page-header">
+      <h1 class="page-title">RÉCORDS GLOBALES</h1>
+      <button class="refresh-btn" :disabled="pending" @click="refresh()">
+        {{ pending ? '...' : '↺' }}
+      </button>
+    </div>
 
     <div class="game-tabs">
       <button
@@ -25,13 +30,13 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(s, i) in filtered" :key="s.id">
+        <tr v-for="(s, i) in data?.scores ?? []" :key="s.id">
           <td class="rank">{{ i + 1 }}</td>
           <td class="player">{{ s.user.username }}</td>
           <td class="pts">{{ s.value }}</td>
           <td class="date">{{ formatDate(s.createdAt) }}</td>
         </tr>
-        <tr v-if="filtered.length === 0">
+        <tr v-if="!data?.scores?.length">
           <td colspan="4" class="empty">Sin récords aún</td>
         </tr>
       </tbody>
@@ -42,6 +47,8 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const CACHE_TTL = 30_000 // 30 segundos
+
 interface Score {
   id: string
   game: string
@@ -51,18 +58,26 @@ interface Score {
 }
 
 const games = [
-  { key: 'SNAKE', label: 'SNAKE', color: '#39ff14' },
-  { key: 'TETRIS', label: 'TETRIS', color: '#00e5ff' },
-  { key: 'BREAKOUT', label: 'BREAKOUT', color: '#ff2d78' },
-  { key: 'SNAKE_VS_SNAKE', label: 'SNAKE VS SNAKE', color: '#ffe600' },
+  { key: 'SNAKE',         label: 'SNAKE',         color: '#39ff14' },
+  { key: 'TETRIS',        label: 'TETRIS',         color: '#00e5ff' },
+  { key: 'BREAKOUT',      label: 'BREAKOUT',       color: '#ff2d78' },
+  { key: 'SNAKE_VS_SNAKE',label: 'SNAKE VS SNAKE', color: '#ffe600' },
 ]
 
 const selected = ref('SNAKE')
 
-const { data, pending, error } = useFetch<{ scores: Score[] }>('/api/scores')
-
-const filtered = computed(() =>
-  (data.value?.scores ?? []).filter(s => s.game === selected.value),
+const { data, pending, error, refresh } = useFetch<{ scores: Score[], fetchedAt: number }>(
+  '/api/scores',
+  {
+    query: { game: selected },
+    // Usa caché si el dato tiene menos de 30s; re-fetcha al cambiar tab si expiró
+    getCachedData(key, nuxtApp) {
+      const cached = nuxtApp.payload.data[key] ?? nuxtApp.static.data[key]
+      if (!cached?.fetchedAt) return undefined
+      if (Date.now() - cached.fetchedAt > CACHE_TTL) return undefined
+      return cached
+    },
+  },
 )
 
 function formatDate(iso: string): string {
@@ -79,12 +94,40 @@ function formatDate(iso: string): string {
   gap: 2rem;
 }
 
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
 .page-title {
   font-family: var(--font-pixel);
   font-size: 1rem;
   color: var(--neon-yellow);
   text-shadow: 0 0 15px #ffe60066;
-  text-align: center;
+}
+
+.refresh-btn {
+  font-family: var(--font-pixel);
+  font-size: 0.8rem;
+  background: transparent;
+  border: 1px solid var(--neon-yellow);
+  color: var(--neon-yellow);
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  line-height: 1;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: var(--neon-yellow);
+  color: var(--bg);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .game-tabs {
