@@ -242,10 +242,14 @@ function startGame(state: RoomState): void {
   const remaining = shuffle([...suspects.slice(1), ...weapons.slice(1), ...roomCards.slice(1)] as CardId[])
   const playerList = Array.from(state.players.values()).sort((a, b) => a.slot - b.slot)
   playerList.forEach((p, i) => { p.currentRoom = START_ROOMS[i % START_ROOMS.length]! })
-  remaining.forEach((card, i) => { playerList[i % playerList.length]!.hand.push(card) })
 
-  const dealable = playerList.length * Math.floor(remaining.length / playerList.length)
-  state.publicCards = remaining.slice(dealable)
+  const totalDealable = playerList.length * Math.floor(remaining.length / playerList.length)
+  state.publicCards = remaining.slice(totalDealable)
+
+  remaining.slice(0, totalDealable).forEach((card, i) => {
+    playerList[i % playerList.length]!.hand.push(card)
+  })
+
   state.currentUserId = playerList[0]!.userId
   state.phase = 'MOVE'
 
@@ -413,23 +417,17 @@ function handleAccuse(state: RoomState, player: CluePlayer, suspect: SuspectId, 
   }
 }
 
-<<<<<<< HEAD
 async function finishRoom(state: RoomState, winnerId: string | null): Promise<void> {
   await prisma.gameRoom.update({
     where: { id: state.roomId },
-    data: { status: RoomStatus.FINISHED },
-  }).catch(() => {/* ignore */})
+    data: { status: RoomStatus.FINISHED, state: {} },
+  }).catch(() => {})
 
   if (winnerId) {
     await prisma.score.create({
       data: { userId: winnerId, gameId: (await prisma.game.findUniqueOrThrow({ where: { key: 'CLUE' } })).id, value: 1 },
-    }).catch(() => {/* ignore */})
+    }).catch(() => {})
   }
-=======
-function finishRoom(state: RoomState, winnerId: string | null): void {
-  prisma.gameRoom.update({ where: { id: state.roomId }, data: { status: RoomStatus.FINISHED, state: {} } }).catch(() => {})
-  if (winnerId) prisma.score.create({ data: { userId: winnerId, game: 'CLUE', value: 1 } }).catch(() => {})
->>>>>>> 531267d (♻️ Improve security)
 }
 
 // ─── WebSocket handler ────────────────────────────────────────────────────────
