@@ -22,5 +22,24 @@ export NODE_ENV=${NODE_ENV:-production}
 echo "Entry: running prisma migrate deploy"
 node ./node_modules/.bin/prisma migrate deploy
 
+GAME_COUNT=$(node --input-type=module -e "
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
+const n = await prisma.game.count();
+await prisma.\$disconnect();
+await pool.end();
+console.log(n);
+" 2>/dev/null || echo 0)
+
+if [ "$GAME_COUNT" = "0" ]; then
+  echo "Entry: seeding database..."
+  node ./node_modules/.bin/tsx prisma/seed.ts
+else
+  echo "Entry: seed skipped ($GAME_COUNT games already in DB)"
+fi
+
 echo "Entry: starting node .output/server/index.mjs"
 exec node .output/server/index.mjs
