@@ -413,7 +413,6 @@ function handleAccuse(state: RoomState, player: CluePlayer, suspect: SuspectId, 
   }
 }
 
-<<<<<<< HEAD
 async function finishRoom(state: RoomState, winnerId: string | null): Promise<void> {
   await prisma.gameRoom.update({
     where: { id: state.roomId },
@@ -425,11 +424,6 @@ async function finishRoom(state: RoomState, winnerId: string | null): Promise<vo
       data: { userId: winnerId, gameId: (await prisma.game.findUniqueOrThrow({ where: { key: 'CLUE' } })).id, value: 1 },
     }).catch(() => {/* ignore */})
   }
-=======
-function finishRoom(state: RoomState, winnerId: string | null): void {
-  prisma.gameRoom.update({ where: { id: state.roomId }, data: { status: RoomStatus.FINISHED, state: {} } }).catch(() => {})
-  if (winnerId) prisma.score.create({ data: { userId: winnerId, game: 'CLUE', value: 1 } }).catch(() => {})
->>>>>>> 531267d (♻️ Improve security)
 }
 
 // ─── WebSocket handler ────────────────────────────────────────────────────────
