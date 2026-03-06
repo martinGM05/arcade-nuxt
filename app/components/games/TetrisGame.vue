@@ -10,7 +10,7 @@
           <canvas ref="canvasRef" :width="BOARD_W" :height="BOARD_H"></canvas>
           <div v-if="state === 'idle'" class="overlay">
             <p class="overlay-title">TETRIS</p>
-            <p class="overlay-hint">ENTER o ESPACIO para comenzar</p>
+            <p class="overlay-hint">ENTER o toca para comenzar</p>
           </div>
           <div v-else-if="state === 'gameover'" class="overlay">
             <p class="overlay-title game-over">GAME OVER</p>
@@ -25,6 +25,53 @@
         </div>
         <div class="controls-hint">
           <kbd>← →</kbd> mover &nbsp;|&nbsp; <kbd>↑</kbd> rotar &nbsp;|&nbsp; <kbd>↓</kbd> bajar &nbsp;|&nbsp; <kbd>Space</kbd> caída &nbsp;|&nbsp; <kbd>P</kbd> pausa
+        </div>
+
+        <!-- Mobile gamepad -->
+        <div class="gamepad">
+          <div class="gamepad-top">
+            <button
+              class="gpad-btn gpad-rotate"
+              @touchstart.prevent="tapKey('ArrowUp')"
+              @click="tapKey('ArrowUp')"
+              title="Rotar"
+            >↺</button>
+            <button
+              class="gpad-btn gpad-drop"
+              @touchstart.prevent="tapKey(' ')"
+              @click="tapKey(' ')"
+              title="Caída"
+            >⬇</button>
+          </div>
+          <div class="gamepad-bottom">
+            <button
+              class="gpad-btn"
+              @touchstart.prevent="startHold('ArrowLeft')"
+              @touchend.prevent="endHold"
+              @mousedown="startHold('ArrowLeft')"
+              @mouseup="endHold"
+              @mouseleave="endHold"
+              title="Izquierda"
+            >◀</button>
+            <button
+              class="gpad-btn gpad-down"
+              @touchstart.prevent="startHold('ArrowDown')"
+              @touchend.prevent="endHold"
+              @mousedown="startHold('ArrowDown')"
+              @mouseup="endHold"
+              @mouseleave="endHold"
+              title="Bajar"
+            >▼</button>
+            <button
+              class="gpad-btn"
+              @touchstart.prevent="startHold('ArrowRight')"
+              @touchend.prevent="endHold"
+              @mousedown="startHold('ArrowRight')"
+              @mouseup="endHold"
+              @mouseleave="endHold"
+              title="Derecha"
+            >▶</button>
+          </div>
         </div>
       </div>
       <div class="side-panel">
@@ -287,6 +334,39 @@ function togglePause(): void {
   }
 }
 
+// Mobile tap key helper
+function tapKey(key: string): void {
+  if (key === 'Enter') {
+    if (state.value === 'idle' || state.value === 'gameover') { startGame(); return }
+  }
+  if (state.value !== 'running' || !current) return
+  if (key === 'ArrowLeft') { if (!collides(current, -1)) current.x--; drawBoard() }
+  else if (key === 'ArrowRight') { if (!collides(current, 1)) current.x++; drawBoard() }
+  else if (key === 'ArrowDown') { if (!collides(current, 0, 1)) { current.y++; score.value++ } else land(); drawBoard() }
+  else if (key === 'ArrowUp') {
+    const rotated = rotate(current.shape)
+    if (!collides(current, 0, 0, rotated)) current.shape = rotated
+    else if (!collides(current, 1, 0, rotated)) { current.shape = rotated; current.x++ }
+    else if (!collides(current, -1, 0, rotated)) { current.shape = rotated; current.x-- }
+    drawBoard()
+  } else if (key === ' ') { hardDrop(); drawBoard() }
+}
+
+let holdTimer: ReturnType<typeof setInterval> | null = null
+let holdTimeout: ReturnType<typeof setTimeout> | null = null
+
+function startHold(key: string): void {
+  tapKey(key)
+  holdTimeout = setTimeout(() => {
+    holdTimer = setInterval(() => tapKey(key), 80)
+  }, 280)
+}
+
+function endHold(): void {
+  if (holdTimeout) { clearTimeout(holdTimeout); holdTimeout = null }
+  if (holdTimer) { clearInterval(holdTimer); holdTimer = null }
+}
+
 function onKey(e: KeyboardEvent): void {
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault()
 
@@ -311,6 +391,11 @@ function onKey(e: KeyboardEvent): void {
   drawBoard()
 }
 
+function onCanvasTouch(e: TouchEvent): void {
+  e.preventDefault()
+  if (state.value === 'idle' || state.value === 'gameover') startGame()
+}
+
 onMounted(() => {
   ctx = canvasRef.value!.getContext('2d')
   nextCtx = nextCanvasRef.value!.getContext('2d')
@@ -319,22 +404,25 @@ onMounted(() => {
   nextCtx!.fillStyle = '#0a0a0a'
   nextCtx!.fillRect(0, 0, NEXT_SIZE, NEXT_SIZE)
   window.addEventListener('keydown', onKey)
+  canvasRef.value!.addEventListener('touchstart', onCanvasTouch, { passive: false })
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKey)
+  if (canvasRef.value) canvasRef.value.removeEventListener('touchstart', onCanvasTouch)
   cancelAnimationFrame(rafId)
+  endHold()
 })
 </script>
 
 <style scoped>
 .tetris-wrapper { display: flex; flex-direction: column; align-items: center; }
-.tetris-layout { display: flex; gap: 1rem; align-items: flex-start; }
-.board-side { display: flex; flex-direction: column; gap: 0.75rem; }
-.score-bar { display: flex; justify-content: space-between; font-family: var(--font-pixel); font-size: 0.5rem; color: var(--text-dim); }
+.tetris-layout { display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+.board-side { display: flex; flex-direction: column; gap: 0.75rem; align-items: center; }
+.score-bar { width: 100%; display: flex; justify-content: space-between; font-family: var(--font-pixel); font-size: 0.5rem; color: var(--text-dim); }
 .score-bar strong { color: var(--neon-cyan); }
 .canvas-container { position: relative; border: 2px solid var(--neon-cyan); box-shadow: 0 0 20px #00e5ff44, inset 0 0 20px #00000088; }
-canvas { display: block; }
+canvas { display: block; max-width: 100%; height: auto; }
 .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.82); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; }
 .overlay-title { font-family: var(--font-pixel); font-size: 1.1rem; color: var(--neon-cyan); text-shadow: 0 0 15px #00e5ff; }
 .overlay-title.game-over { color: var(--neon-pink); text-shadow: 0 0 15px #ff2d78; }
@@ -347,5 +435,50 @@ kbd { background: #2a2a2a; border: 1px solid #444; border-radius: 3px; padding: 
 .panel-box { background: #0a0a0a; border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
 .panel-label { font-family: var(--font-pixel); font-size: 0.45rem; color: var(--text-dim); letter-spacing: 0.05em; }
 .panel-value { font-family: var(--font-pixel); font-size: 1rem; color: var(--neon-cyan); }
+
+/* Mobile gamepad */
+.gamepad {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  user-select: none;
+}
+
+.gamepad-top,
+.gamepad-bottom {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.gpad-btn {
+  width: 64px;
+  height: 56px;
+  background: #1a1a1a;
+  border: 1px solid #00e5ff44;
+  border-radius: 8px;
+  color: var(--neon-cyan);
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s, box-shadow 0.1s;
+}
+
+.gpad-btn:active {
+  background: #00e5ff22;
+  box-shadow: 0 0 10px #00e5ff55;
+}
+
+.gpad-rotate { font-size: 1.5rem; }
+.gpad-drop { font-size: 1.2rem; }
+
+@media (pointer: coarse) {
+  .gamepad { display: flex; }
+  .controls-hint { display: none; }
+}
+
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 </style>

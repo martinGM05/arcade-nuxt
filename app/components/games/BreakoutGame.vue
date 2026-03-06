@@ -9,8 +9,8 @@
       <canvas ref="canvasRef" :width="W" :height="H"></canvas>
       <div v-if="state === 'idle'" class="overlay">
         <p class="overlay-title">BREAKOUT</p>
-        <p class="overlay-hint">ENTER o ESPACIO para comenzar</p>
-        <p class="overlay-sub">Mueve con ← → o el ratón</p>
+        <p class="overlay-hint">ENTER o toca para comenzar</p>
+        <p class="overlay-sub">Mueve con ← → o el ratón / dedo</p>
       </div>
       <div v-else-if="state === 'gameover'" class="overlay">
         <p class="overlay-title game-over">GAME OVER</p>
@@ -28,6 +28,32 @@
         <p class="overlay-hint">P para continuar</p>
       </div>
     </div>
+
+    <!-- Mobile left/right buttons -->
+    <div class="mobile-controls">
+      <button
+        class="mc-btn"
+        @touchstart.prevent="startMove(-1)"
+        @touchend.prevent="stopMove"
+        @mousedown="startMove(-1)"
+        @mouseup="stopMove"
+        @mouseleave="stopMove"
+      >◀</button>
+      <button
+        class="mc-btn mc-pause"
+        @touchstart.prevent="togglePause"
+        @click="togglePause"
+      >⏸</button>
+      <button
+        class="mc-btn"
+        @touchstart.prevent="startMove(1)"
+        @touchend.prevent="stopMove"
+        @mousedown="startMove(1)"
+        @mouseup="stopMove"
+        @mouseleave="stopMove"
+      >▶</button>
+    </div>
+
     <div class="controls-hint">
       <kbd>← →</kbd> mover &nbsp;|&nbsp; <kbd>Mouse</kbd> mover &nbsp;|&nbsp; <kbd>P</kbd> pausa
     </div>
@@ -65,6 +91,29 @@ let paddle = { x: 0, y: 0, w: PAD_W_DEFAULT, h: PAD_H }
 let ball = { x: 0, y: 0, vx: 0, vy: 0, r: BALL_R }
 let bricks: Brick[] = []
 let level = 1
+
+// Mobile move state
+let moveDir = 0
+let moveInterval: ReturnType<typeof setInterval> | null = null
+
+function startMove(dir: number): void {
+  stopMove()
+  moveDir = dir
+  // immediate step + repeat
+  movePaddle(dir)
+  moveInterval = setInterval(() => movePaddle(dir), 16)
+}
+
+function stopMove(): void {
+  if (moveInterval) { clearInterval(moveInterval); moveInterval = null }
+  moveDir = 0
+}
+
+function movePaddle(dir: number): void {
+  if (state.value !== 'running') return
+  const spd = 14
+  paddle.x = Math.max(0, Math.min(W - paddle.w, paddle.x + dir * spd))
+}
 
 function initLevel(): void {
   paddle = { x: W / 2 - PAD_W_DEFAULT / 2, y: H - 30, w: PAD_W_DEFAULT, h: PAD_H }
@@ -220,28 +269,51 @@ function onMouseMove(e: MouseEvent): void {
   paddle.x = Math.max(0, Math.min(W - paddle.w, (e.clientX - rect.left) * scaleX - paddle.w / 2))
 }
 
+function onTouchMove(e: TouchEvent): void {
+  e.preventDefault()
+  if (state.value !== 'running') return
+  const touch = e.touches[0]
+  if (!touch) return
+  const rect = canvasRef.value!.getBoundingClientRect()
+  const scaleX = W / rect.width
+  paddle.x = Math.max(0, Math.min(W - paddle.w, (touch.clientX - rect.left) * scaleX - paddle.w / 2))
+}
+
+function onTouchStart(e: TouchEvent): void {
+  e.preventDefault()
+  if (state.value === 'idle' || state.value === 'gameover') startGame(false)
+  else if (state.value === 'win') startGame(true)
+}
+
 onMounted(() => {
   ctx = canvasRef.value!.getContext('2d')
   ctx!.fillStyle = '#0d0d0d'
   ctx!.fillRect(0, 0, W, H)
   window.addEventListener('keydown', onKey)
   canvasRef.value!.addEventListener('mousemove', onMouseMove)
+  canvasRef.value!.addEventListener('touchmove', onTouchMove, { passive: false })
+  canvasRef.value!.addEventListener('touchstart', onTouchStart, { passive: false })
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKey)
-  if (canvasRef.value) canvasRef.value.removeEventListener('mousemove', onMouseMove)
+  stopMove()
+  if (canvasRef.value) {
+    canvasRef.value.removeEventListener('mousemove', onMouseMove)
+    canvasRef.value.removeEventListener('touchmove', onTouchMove)
+    canvasRef.value.removeEventListener('touchstart', onTouchStart)
+  }
   cancelAnimationFrame(rafId)
 })
 </script>
 
 <style scoped>
 .breakout-wrapper { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
-.score-bar { width: 480px; display: flex; justify-content: space-between; font-family: var(--font-pixel); font-size: 0.5rem; color: var(--text-dim); }
+.score-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; font-family: var(--font-pixel); font-size: 0.5rem; color: var(--text-dim); }
 .score-bar strong { color: var(--neon-pink); }
 .score-bar .lives { color: var(--neon-pink); letter-spacing: 0.1em; }
-.canvas-container { position: relative; border: 2px solid var(--neon-pink); box-shadow: 0 0 20px #ff2d7844, inset 0 0 20px #00000088; }
-canvas { display: block; }
+.canvas-container { position: relative; border: 2px solid var(--neon-pink); box-shadow: 0 0 20px #ff2d7844, inset 0 0 20px #00000088; max-width: 100%; }
+canvas { display: block; max-width: 100%; height: auto; }
 .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.82); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; }
 .overlay-title { font-family: var(--font-pixel); font-size: 1.1rem; color: var(--neon-pink); text-shadow: 0 0 15px #ff2d78; }
 .overlay-title.game-over { color: var(--neon-pink); }
@@ -252,5 +324,45 @@ canvas { display: block; }
 .overlay-sub { font-size: 0.8rem; color: var(--text-dim); font-family: var(--font-mono); }
 .controls-hint { font-size: 0.8rem; color: var(--text-dim); font-family: var(--font-mono); }
 kbd { background: #2a2a2a; border: 1px solid #444; border-radius: 3px; padding: 1px 5px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--neon-pink); }
+
+/* Mobile controls */
+.mobile-controls {
+  display: none;
+  gap: 8px;
+  user-select: none;
+}
+
+.mc-btn {
+  width: 80px;
+  height: 56px;
+  background: #1a1a1a;
+  border: 1px solid #ff2d7855;
+  border-radius: 8px;
+  color: var(--neon-pink);
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s, box-shadow 0.1s;
+}
+
+.mc-btn:active {
+  background: #ff2d7822;
+  box-shadow: 0 0 10px #ff2d7855;
+}
+
+.mc-pause {
+  font-size: 1rem;
+  color: var(--text-dim);
+  border-color: #ffffff22;
+}
+
+@media (pointer: coarse) {
+  .mobile-controls { display: flex; }
+  .controls-hint { display: none; }
+}
+
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 </style>

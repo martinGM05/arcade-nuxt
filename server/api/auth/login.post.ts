@@ -1,6 +1,7 @@
 import prisma from '#server/utils/prisma'
 import { comparePassword } from '#server/utils/password'
 import { signToken } from '#server/utils/jwt'
+import { checkRateLimit } from '#server/utils/rateLimit'
 import { getRequestHeader, getRequestIP } from 'h3'
 
 function logAuth(event: Parameters<typeof getRequestIP>[0], action: string, outcome: 'ok' | 'fail', details: Record<string, unknown>) {
@@ -10,6 +11,12 @@ function logAuth(event: Parameters<typeof getRequestIP>[0], action: string, outc
 }
 
 export default defineEventHandler(async (event) => {
+  const ip = getRequestIP(event) ?? 'unknown'
+  if (!checkRateLimit(`login:${ip}`, 5, 60_000)) {
+    logAuth(event, 'login', 'fail', { reason: 'rate_limited', ip })
+    throw createError({ statusCode: 429, message: 'Demasiados intentos. Espera un minuto.' })
+  }
+
   const body = await readBody<{ email: string; password: string }>(event)
 
   if (!body.email || !body.password) {

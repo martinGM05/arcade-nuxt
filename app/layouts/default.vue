@@ -26,6 +26,10 @@
       <span>ARCADE ENCYCLOPEDIA &copy; 2026</span>
     </footer>
   </div>
+
+  <ClientOnly>
+    <CursorGlow />
+  </ClientOnly>
 </template>
 
 <script setup lang="ts">
