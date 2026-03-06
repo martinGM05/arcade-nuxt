@@ -1,7 +1,7 @@
 <template>
-  <div class="hangman-lobby">
+  <div class="hangman-lobby" :style="{ '--c': game?.color }">
     <div class="lobby-header">
-      <h1 class="lobby-title">AHORCADO</h1>
+      <h1 class="lobby-title">{{ game?.name?.toUpperCase() ?? 'AHORCADO' }}</h1>
       <p class="lobby-sub">Solitario o multijugador en tiempo real</p>
     </div>
 
@@ -100,6 +100,7 @@ interface Room { id: string; players: RoomPlayer[] }
 
 type SoloStatus = 'playing' | 'won' | 'lost'
 
+const game = useGame('HANGMAN')
 const auth = useAuth()
 const loadingRooms = ref(false)
 const creating = ref(false)
@@ -239,8 +240,8 @@ onMounted(() => {
 .lobby-title {
   font-family: var(--font-pixel);
   font-size: 1.6rem;
-  color: #ff9f1c;
-  text-shadow: 0 0 20px #ff9f1c66;
+  color: var(--c);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--c) 40%, transparent);
 }
 
 .lobby-sub {
@@ -261,7 +262,7 @@ onMounted(() => {
 .rules-title {
   font-family: var(--font-pixel);
   font-size: 0.55rem;
-  color: #ff9f1c;
+  color: var(--c);
   letter-spacing: 0.1em;
 }
 
@@ -291,7 +292,7 @@ onMounted(() => {
 .section-title {
   font-family: var(--font-pixel);
   font-size: 0.55rem;
-  color: #ff9f1c;
+  color: var(--c);
   letter-spacing: 0.1em;
 }
 

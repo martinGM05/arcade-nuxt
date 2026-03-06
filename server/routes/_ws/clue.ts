@@ -404,7 +404,7 @@ async function finishRoom(state: RoomState, winnerId: string | null): Promise<vo
 
   if (winnerId) {
     await prisma.score.create({
-      data: { userId: winnerId, game: 'CLUE', value: 1 },
+      data: { userId: winnerId, gameId: (await prisma.game.findUniqueOrThrow({ where: { key: 'CLUE' } })).id, value: 1 },
     }).catch(() => {/* ignore */})
   }
 }

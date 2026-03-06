@@ -84,7 +84,7 @@ async function endGame(state: RoomState, winner: 0 | 1 | null, reason: string): 
   for (const p of state.players.values()) {
     if (p.score > 0) {
       await prisma.score.create({
-        data: { userId: p.userId, game: 'SNAKE_VS_SNAKE', value: p.score },
+        data: { userId: p.userId, gameId: (await prisma.game.findUniqueOrThrow({ where: { key: 'SNAKE_VS_SNAKE' } })).id, value: p.score },
       }).catch(() => {/* ignore */})
     }
   }

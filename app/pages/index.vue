@@ -7,52 +7,14 @@
 
     <div class="cards">
       <GameCard
-        to="/snake"
-        title="SNAKE"
-        description="Guía tu serpiente, come manzanas y crece sin chocar."
-        emoji="🐍"
-        accent="#39ff14"
-        badge="SINGLE PLAYER"
-      />
-      <GameCard
-        to="/tetris"
-        title="TETRIS"
-        description="Encaja los tetrominós y elimina líneas."
-        emoji="🧱"
-        accent="#00e5ff"
-        badge="SINGLE PLAYER"
-      />
-      <GameCard
-        to="/breakout"
-        title="BREAKOUT"
-        description="Destruye todos los ladrillos con la pelota."
-        emoji="🎯"
-        accent="#ff2d78"
-        badge="SINGLE PLAYER"
-      />
-      <GameCard
-        to="/snake/multiplayer"
-        title="SNAKE VS SNAKE"
-        description="Tiempo real. Dos serpientes, una sola ganadora."
-        emoji="⚔️"
-        accent="#ffe600"
-        badge="MULTIPLAYER"
-      />
-      <GameCard
-        to="/clue"
-        title="CLUE"
-        description="Deduce al asesino, el arma y la sala. 3-6 jugadores."
-        emoji="🔍"
-        accent="#b000ff"
-        badge="MULTIPLAYER"
-      />
-      <GameCard
-        to="/hangman"
-        title="AHORCADO"
-        description="Solitario o multijugador. Adivina la frase antes de que se acaben los intentos."
-        emoji="🪢"
-        accent="#ff9f1c"
-        badge="SINGLE + MULTI"
+        v-for="g in games"
+        :key="g.key"
+        :to="g.route"
+        :title="g.name.toUpperCase()"
+        :description="g.description"
+        :emoji="g.emoji"
+        :accent="g.color"
+        :badge="g.badge"
       />
     </div>
   </div>
@@ -60,6 +22,9 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
+
+const { data } = await useFetch('/api/games')
+const games = computed(() => data.value?.games ?? [])
 </script>
 
 <style scoped>
