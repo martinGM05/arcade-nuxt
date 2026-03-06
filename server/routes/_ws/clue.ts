@@ -241,13 +241,16 @@ function startGame(state: RoomState): void {
 
   const remaining = shuffle([...suspects.slice(1), ...weapons.slice(1), ...roomCards.slice(1)] as CardId[])
   const playerList = Array.from(state.players.values()).sort((a, b) => a.slot - b.slot)
-  playerList.forEach((p, i) => { p.currentRoom = START_ROOMS[i % START_ROOMS.length]! })
+  playerList.forEach((p, i) => {
+    p.currentRoom = START_ROOMS[i % START_ROOMS.length]!
+  })
 
   const totalDealable = playerList.length * Math.floor(remaining.length / playerList.length)
   state.publicCards = remaining.slice(totalDealable)
 
   remaining.slice(0, totalDealable).forEach((card, i) => {
-    playerList[i % playerList.length]!.hand.push(card)
+    const player = playerList[i % playerList.length]!
+    player.hand.push(card)
   })
 
   state.currentUserId = playerList[0]!.userId
