@@ -1,5 +1,4 @@
 import prisma from '#server/utils/prisma'
-import { GameType } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
   const user = event.context.user
@@ -7,16 +6,17 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{ game: string; value: number }>(event)
 
-  if (!body.game || !Object.values(GameType).includes(body.game as GameType)) {
-    throw createError({ statusCode: 400, message: 'Juego inválido' })
-  }
+  if (!body.game) throw createError({ statusCode: 400, message: 'Juego inválido' })
   if (!Number.isInteger(body.value) || body.value < 0) {
     throw createError({ statusCode: 400, message: 'Puntuación inválida' })
   }
 
-  // Only save if it's a personal best
+  const game = await prisma.game.findUnique({ where: { key: body.game.toUpperCase() } })
+  if (!game) throw createError({ statusCode: 400, message: 'Juego inválido' })
+  if (!game.isActive) throw createError({ statusCode: 400, message: 'Juego no disponible' })
+
   const existing = await prisma.score.findFirst({
-    where: { userId: user.userId, game: body.game as GameType },
+    where: { userId: user.userId, gameId: game.id },
     orderBy: { value: 'desc' },
   })
 
@@ -25,11 +25,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const score = await prisma.score.create({
-    data: {
-      userId: user.userId,
-      game: body.game as GameType,
-      value: body.value,
-    },
+    data: { userId: user.userId, gameId: game.id, value: body.value },
   })
 
   return { score }

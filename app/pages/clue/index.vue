@@ -1,7 +1,7 @@
 <template>
-  <div class="clue-lobby">
+  <div class="clue-lobby" :style="{ '--c': game?.color }">
     <div class="lobby-header">
-      <h1 class="lobby-title">CLUE</h1>
+      <h1 class="lobby-title">{{ game?.name?.toUpperCase() ?? 'CLUE' }}</h1>
       <p class="lobby-sub">Juego de deducción — 3 a 6 jugadores</p>
     </div>
 
@@ -69,6 +69,7 @@ definePageMeta({ layout: 'default' })
 interface RoomPlayer { user: { username: string } }
 interface Room { id: string; players: RoomPlayer[] }
 
+const game = useGame('CLUE')
 const auth = useAuth()
 const loadingRooms = ref(false)
 const creating = ref(false)
@@ -132,8 +133,8 @@ onMounted(fetchRooms)
 .lobby-title {
   font-family: var(--font-pixel);
   font-size: 1.5rem;
-  color: #b000ff;
-  text-shadow: 0 0 20px #b000ff88;
+  color: var(--c);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--c) 53%, transparent);
 }
 
 .lobby-sub {
@@ -154,7 +155,7 @@ onMounted(fetchRooms)
 .rules-title {
   font-family: var(--font-pixel);
   font-size: 0.55rem;
-  color: #b000ff;
+  color: var(--c);
   letter-spacing: 0.1em;
 }
 
@@ -184,7 +185,7 @@ onMounted(fetchRooms)
 .rooms-title {
   font-family: var(--font-pixel);
   font-size: 0.5rem;
-  color: #b000ff;
+  color: var(--c);
   letter-spacing: 0.1em;
 }
 
@@ -200,7 +201,7 @@ onMounted(fetchRooms)
   transition: border-color 0.2s, color 0.2s;
 }
 
-.refresh-btn:hover:not(:disabled) { border-color: #b000ff; color: #b000ff; }
+.refresh-btn:hover:not(:disabled) { border-color: var(--c); color: var(--c); }
 .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .empty-rooms {
@@ -228,7 +229,7 @@ onMounted(fetchRooms)
   transition: border-color 0.2s;
 }
 
-.room-item:hover { border-color: #b000ff44; }
+.room-item:hover { border-color: color-mix(in srgb, var(--c) 27%, transparent); }
 
 .room-info {
   display: flex;
@@ -254,14 +255,14 @@ onMounted(fetchRooms)
   font-size: 0.45rem;
   padding: 0.4rem 0.8rem;
   background: transparent;
-  border: 1px solid #b000ff;
-  color: #b000ff;
+  border: 1px solid var(--c);
+  color: var(--c);
   cursor: pointer;
   letter-spacing: 0.05em;
   transition: background 0.2s, color 0.2s;
 }
 
-.join-btn:hover:not(:disabled) { background: #b000ff; color: var(--bg); }
+.join-btn:hover:not(:disabled) { background: var(--c); color: var(--bg); }
 .join-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Create section */
@@ -272,14 +273,14 @@ onMounted(fetchRooms)
   font-size: 0.55rem;
   padding: 0.75rem 2rem;
   background: transparent;
-  border: 1px solid #b000ff;
-  color: #b000ff;
+  border: 1px solid var(--c);
+  color: var(--c);
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
   letter-spacing: 0.05em;
 }
 
-.create-btn:hover:not(:disabled) { background: #b000ff; color: var(--bg); }
+.create-btn:hover:not(:disabled) { background: var(--c); color: var(--bg); }
 .create-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .auth-notice { font-family: var(--font-mono); color: var(--text-dim); text-align: center; }

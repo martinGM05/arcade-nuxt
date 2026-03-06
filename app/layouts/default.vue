@@ -3,11 +3,7 @@
     <nav class="nav">
       <NuxtLink to="/" class="nav-brand">ARCADE 🕹</NuxtLink>
       <div class="nav-links">
-        <NuxtLink to="/snake">Snake</NuxtLink>
-        <NuxtLink to="/tetris">Tetris</NuxtLink>
-        <NuxtLink to="/breakout">Breakout</NuxtLink>
-        <NuxtLink to="/snake/multiplayer">Multijugador</NuxtLink>
-        <NuxtLink to="/clue">Clue</NuxtLink>
+        <NuxtLink v-for="g in navGames" :key="g.key" :to="g.route">{{ g.name }}</NuxtLink>
         <NuxtLink to="/leaderboard">Récords</NuxtLink>
       </div>
       <div class="nav-auth">
@@ -34,6 +30,9 @@
 
 <script setup lang="ts">
 const auth = useAuth()
+
+const { data: gamesData } = await useFetch('/api/games', { query: { nav: 'true' } })
+const navGames = computed(() => gamesData.value?.games ?? [])
 </script>
 
 <style scoped>

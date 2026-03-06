@@ -15,7 +15,7 @@
         :class="{ active: selected === g.key }"
         :style="{ '--c': g.color }"
         @click="selected = g.key"
-      >{{ g.label }}</button>
+      >{{ g.name }}</button>
     </div>
 
     <div v-if="pending" class="loading">Cargando...</div>
@@ -49,22 +49,24 @@ definePageMeta({ layout: 'default' })
 
 const CACHE_TTL = 30_000 // 30 segundos
 
+interface Game {
+  key: string
+  name: string
+  color: string
+}
+
 interface Score {
   id: string
-  game: string
   value: number
   createdAt: string
   user: { username: string }
 }
 
-const games = [
-  { key: 'SNAKE',         label: 'SNAKE',         color: '#39ff14' },
-  { key: 'TETRIS',        label: 'TETRIS',         color: '#00e5ff' },
-  { key: 'BREAKOUT',      label: 'BREAKOUT',       color: '#ff2d78' },
-  { key: 'SNAKE_VS_SNAKE',label: 'SNAKE VS SNAKE', color: '#ffe600' },
-]
+const { data: gamesData } = await useFetch<{ games: Game[] }>('/api/games')
+const games = computed(() => gamesData.value?.games ?? [])
 
-const selected = ref('SNAKE')
+const selected = ref('')
+watch(games, (list) => { if (list.length && !selected.value) selected.value = list[0].key }, { immediate: true })
 
 const { data, pending, error, refresh } = useFetch<{ scores: Score[], fetchedAt: number }>(
   '/api/scores',
